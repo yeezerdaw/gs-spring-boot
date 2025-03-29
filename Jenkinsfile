@@ -1,18 +1,18 @@
 pipeline {
     agent any
-    
+
     tools {
         maven 'Maven'
-        jdk 'JDK17'  // Using JDK17
+        jdk 'JDK 17'  // Ensure this matches your Jenkins tool configuration
     }
-    
+
     environment {
         DOCKER_REGISTRY = "yourusername"
         IMAGE_NAME = "spring-boot-sample"
         IMAGE_TAG = "${BUILD_NUMBER}"
         SONAR_TOKEN = "squ_4319aa99eecd3d6ac874e7f1b4c7f3a9af711854"
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
@@ -21,7 +21,7 @@ pipeline {
                 echo 'Git repository cloned successfully'
             }
         }
-        
+
         stage('Build') {
             steps {
                 // Navigate to the complete directory and build with Maven
@@ -31,7 +31,7 @@ pipeline {
                 echo 'Project built successfully'
             }
         }
-        
+
         stage('Test') {
             steps {
                 // Run tests in the complete directory
@@ -47,7 +47,7 @@ pipeline {
                 }
             }
         }
-        
+
         stage('SonarQube Analysis') {
             steps {
                 // Run SonarQube analysis in the complete directory
@@ -64,7 +64,7 @@ pipeline {
                 echo 'SonarQube analysis completed'
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
                 // Create Docker image
@@ -77,7 +77,7 @@ pipeline {
                 echo 'Docker image built successfully'
             }
         }
-        
+
         stage('Push Docker Image') {
             steps {
                 // Push Docker image to registry
@@ -91,7 +91,7 @@ pipeline {
                 echo 'Docker image pushed to registry'
             }
         }
-        
+
         stage('Deploy Container Locally') {
             steps {
                 // Run container locally
@@ -104,7 +104,7 @@ pipeline {
             }
         }
     }
-    
+
     post {
         success {
             echo 'Pipeline executed successfully!'

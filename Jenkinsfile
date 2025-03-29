@@ -1,58 +1,47 @@
 pipeline {
     agent any
-    
+
     tools {
-        maven 'Maven'
-        jdk 'JDK 17'  // Using JDK17
+        // Define the tools to be used in the pipeline
+        maven 'Maven 3.9.9' // Maven tool name as defined in Jenkins Global Tool Configuration
+        jdk 'JDK 17' // JDK tool name as defined in Jenkins Global Tool Configuration
     }
-    
+
     environment {
-        DOCKER_REGISTRY = "yourusername"
-        IMAGE_NAME = "spring-boot-sample"
-        IMAGE_TAG = "${BUILD_NUMBER}"
-        SONAR_TOKEN = "squ_4319aa99eecd3d6ac874e7f1b4c7f3a9af711854"
+        // Hardcoded SonarQube token
+        SONAR_TOKEN = 'squ_4319aa99eecd3d6ac874e7f1b4c7f3a9af711854'
     }
-    
+
     stages {
-        stage('Checkout') {
+        stage('Checkout SCM') {
             steps {
-                // Ensure you're pulling from the 'main' branch
-                git branch: 'main', url: 'https://github.com/yeezerdaw/gs-spring-boot.git'
-                echo 'Git repository cloned successfully'
+                checkout scm
             }
         }
-        
+
         stage('Build') {
             steps {
-                // Navigate to the complete directory and build with Maven
-                dir('complete') {
-                    sh 'mvn clean package -DskipTests -Djava.version=17'
+                script {
+                    // Assuming Maven is used for build
+                    sh 'mvn clean install'
                 }
-                echo 'Project built successfully'
             }
         }
-        
+
         stage('Test') {
             steps {
-                // Run tests in the complete directory
-                dir('complete') {
+                script {
+                    // Run tests
                     sh 'mvn test'
-                }
-                echo 'Tests executed successfully'
-            }
-            post {
-                always {
-                    // Publish test results
-                    junit 'complete/target/surefire-reports/*.xml'
                 }
             }
         }
-        
+
         stage('SonarQube Analysis') {
             steps {
-                // Run SonarQube analysis in the complete directory
-                dir('complete') {
-                    withSonarQubeEnv('SonarQube') {
+                withSonarQubeEnv('myserver') {
+                    script {
+                        // Running SonarQube analysis
                         sh '''
                             mvn sonar:sonar \
                             -Dsonar.projectKey=spring-boot-sample \
@@ -61,60 +50,46 @@ pipeline {
                         '''
                     }
                 }
-                echo 'SonarQube analysis completed'
             }
         }
-        
+
         stage('Build Docker Image') {
             steps {
-                // Create Docker image
-                dir('complete') {
-                    sh '''
-                        docker build -t ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} .
-                        docker tag ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest
-                    '''
+                script {
+                    // Build the Docker image
+                    sh 'docker build -t my-image .'
                 }
-                echo 'Docker image built successfully'
             }
         }
-        
+
         stage('Push Docker Image') {
             steps {
-                // Push Docker image to registry
-                withCredentials([string(credentialsId: 'docker-hub-password', variable: 'DOCKER_HUB_PASSWORD')]) {
-                    sh '''
-                        echo ${DOCKER_HUB_PASSWORD} | docker login -u ${DOCKER_REGISTRY} --password-stdin
-                        docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
-                        docker push ${DOCKER_REGISTRY}/${IMAGE_NAME}:latest
-                    '''
+                script {
+                    // Push Docker image to registry
+                    sh 'docker push my-image'
                 }
-                echo 'Docker image pushed to registry'
             }
         }
-        
+
         stage('Deploy Container Locally') {
             steps {
-                // Run container locally
-                sh '''
-                    docker stop ${IMAGE_NAME} || true
-                    docker rm ${IMAGE_NAME} || true
-                    docker run -d -p 8080:8080 --name ${IMAGE_NAME} ${DOCKER_REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
-                '''
-                echo 'Container deployed locally on port 8080'
+                script {
+                    // Run Docker container locally
+                    sh 'docker run -d -p 8080:8080 my-image'
+                }
             }
         }
     }
-    
+
     post {
+        always {
+            cleanWs()  // Clean workspace after build
+        }
         success {
             echo 'Pipeline executed successfully!'
         }
         failure {
-            echo 'Pipeline execution failed!'
-        }
-        always {
-            // Clean up workspace
-            cleanWs()
+            echo 'Pipeline execution failed.'
         }
     }
 }

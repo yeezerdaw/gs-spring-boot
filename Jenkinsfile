@@ -3,7 +3,7 @@ pipeline {
 
     tools {
         // Define the tools to be used in the pipeline
-        maven 'Maven 3.9.9' // Maven tool name as defined in Jenkins Global Tool Configuration
+        maven 'Maven' // Maven tool name as defined in Jenkins Global Tool Configuration
         jdk 'JDK 17' // JDK tool name as defined in Jenkins Global Tool Configuration
     }
 
